@@ -1,0 +1,28 @@
+{
+  "info": {
+    "name": "3Stone Sentinel API",
+    "description": "Read-only exposure checks for deployed AI-built web apps. Set sentinelApiKey, then run Scan a deployed app.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://shield-api.3stoneai.com" },
+    { "key": "sentinelApiKey", "value": "" },
+    { "key": "targetUrl", "value": "https://example.com" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{sentinelApiKey}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Scan a deployed app",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"url\": \"{{targetUrl}}\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/v1/sentinel/scan", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sentinel", "scan"] },
+        "description": "Runs narrow, read-only exposure checks. Sentinel is not a penetration test or security guarantee."
+      }
+    }
+  ]
+}

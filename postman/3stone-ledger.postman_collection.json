@@ -1,0 +1,54 @@
+{
+  "info": {
+    "name": "3Stone Ledger API",
+    "description": "Approval gates and independent action records for AI agents. Set ledgerApiKey, then run the requests in order.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://shield-api.3stoneai.com" },
+    { "key": "ledgerApiKey", "value": "" },
+    { "key": "actionId", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{ledgerApiKey}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "1. Propose an action",
+      "event": [{ "listen": "test", "script": { "exec": ["const body = pm.response.json();", "if (body.action?.id) pm.collectionVariables.set('actionId', body.action.id);"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"agentId\": \"deployment-agent\",\n  \"description\": \"Deploy release to production\",\n  \"riskLevel\": \"high\",\n  \"approvalThreshold\": \"high\",\n  \"actionType\": \"deployment\",\n  \"metadata\": { \"environment\": \"production\" }\n}" },
+        "url": { "raw": "{{baseUrl}}/api/v1/ledger/actions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "ledger", "actions"] }
+      }
+    },
+    {
+      "name": "2. Read the action",
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/ledger/actions/{{actionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "ledger", "actions", "{{actionId}}"] } }
+    },
+    {
+      "name": "3. Approve the action",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"decision\": \"approve\",\n  \"decidedBy\": \"reviewer@example.com\",\n  \"reason\": \"Release reviewed\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/v1/ledger/actions/{{actionId}}/decide", "host": ["{{baseUrl}}"], "path": ["api", "v1", "ledger", "actions", "{{actionId}}", "decide"] }
+      }
+    },
+    {
+      "name": "4. Report execution",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"outcome\": \"executed\",\n  \"details\": \"Deployment completed\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/v1/ledger/actions/{{actionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "ledger", "actions", "{{actionId}}"] }
+      }
+    },
+    {
+      "name": "List actions",
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/ledger/actions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "ledger", "actions"] } }
+    }
+  ]
+}
