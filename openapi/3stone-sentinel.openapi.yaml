@@ -1,0 +1,106 @@
+openapi: 3.1.0
+info:
+  title: 3Stone Sentinel API
+  version: 1.0.0
+  license:
+    name: MIT
+    identifier: MIT
+  description: Read-only checks for exposed data paths and browser-bundled secrets in deployed web applications. Sentinel is not a penetration test or security guarantee.
+  contact:
+    name: 3Stone AI
+    email: jathan@3stoneai.com
+    url: https://www.3stoneai.com/sentinel
+servers:
+  - url: https://shield-api.3stoneai.com
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/sentinel/scan:
+    post:
+      operationId: scanDeployedApplication
+      summary: Scan a deployed application
+      description: Runs narrow, read-only exposure checks and returns evidence without storing exposed row contents.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  examples: [https://example.com]
+      responses:
+        "200":
+          description: Scan completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanResponse"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ScanFailed" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: sk_sentinel
+  schemas:
+    Finding:
+      type: object
+      additionalProperties: true
+      properties:
+        ruleId: { type: string }
+        impact: { type: [string, "null"], enum: [critical, serious, moderate, minor, null] }
+        description: { type: string }
+        targetSelector: { type: string }
+        evidence: { type: object, additionalProperties: true }
+    ScanResponse:
+      type: object
+      required: [ok, scanId, url, findings, checksRun, usage]
+      properties:
+        ok: { type: boolean, const: true }
+        scanId: { type: [string, "null"], format: uuid }
+        url: { type: string, format: uri }
+        pageTitle: { type: [string, "null"] }
+        findings:
+          type: array
+          items: { $ref: "#/components/schemas/Finding" }
+        checksRun:
+          type: array
+          items: { type: string }
+        report:
+          type: [object, "null"]
+          additionalProperties: true
+        usage:
+          type: object
+          required: [callsUsedThisPeriod, callsLimitPerPeriod]
+          properties:
+            callsUsedThisPeriod: { type: integer }
+            callsLimitPerPeriod: { type: integer }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+  responses:
+    BadRequest:
+      description: Invalid request
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Unauthorized:
+      description: Missing or invalid API key
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Forbidden:
+      description: API key is inactive
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    ScanFailed:
+      description: The target could not be scanned
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    RateLimited:
+      description: Monthly call limit reached
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }

@@ -1,0 +1,28 @@
+{
+  "info": {
+    "name": "3Stone Shield API",
+    "description": "Detectable accessibility findings for public web pages. Automated testing does not cover every WCAG criterion and is not a compliance guarantee.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://shield-api.3stoneai.com" },
+    { "key": "shieldApiKey", "value": "" },
+    { "key": "targetUrl", "value": "https://example.com" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{shieldApiKey}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Scan a public page",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"url\": \"{{targetUrl}}\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/v1/shield/scan", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shield", "scan"] },
+        "description": "Runs automated accessibility checks against a public page and returns developer-ready findings."
+      }
+    }
+  ]
+}

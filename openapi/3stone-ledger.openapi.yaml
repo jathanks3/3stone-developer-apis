@@ -1,0 +1,138 @@
+openapi: 3.1.0
+info:
+  title: 3Stone Ledger API
+  version: 1.0.0
+  license:
+    name: MIT
+    identifier: MIT
+  description: Approval gates and an independent action record for AI agents. Ledger records decisions and caller-reported outcomes; it never executes an action.
+  contact:
+    name: 3Stone AI
+    email: jathan@3stoneai.com
+    url: https://www.3stoneai.com/ledger
+servers:
+  - url: https://shield-api.3stoneai.com
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/ledger/actions:
+    post:
+      operationId: proposeAction
+      summary: Propose an agent action
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ActionProposal" }
+      responses:
+        "201":
+          description: Action recorded
+          content: { application/json: { schema: { $ref: "#/components/schemas/ActionResponse" } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    get:
+      operationId: listActions
+      summary: List recorded actions
+      parameters:
+        - { in: query, name: agentId, schema: { type: string } }
+        - { in: query, name: status, schema: { $ref: "#/components/schemas/ActionStatus" } }
+      responses:
+        "200":
+          description: Actions returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, const: true }
+                  actions: { type: array, items: { $ref: "#/components/schemas/Action" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/ledger/actions/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getAction
+      summary: Read one action
+      responses:
+        "200": { description: Action returned, content: { application/json: { schema: { $ref: "#/components/schemas/ActionResponse" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      operationId: reportExecution
+      summary: Report the outcome of an approved action
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome]
+              properties:
+                outcome: { type: string, enum: [executed, execution_failed] }
+                details: { type: string }
+      responses:
+        "200": { description: Outcome recorded, content: { application/json: { schema: { $ref: "#/components/schemas/ActionResponse" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/ledger/actions/{id}/decide:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: decideAction
+      summary: Approve or reject a pending action
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision, decidedBy]
+              properties:
+                decision: { type: string, enum: [approve, reject] }
+                decidedBy: { type: string }
+                reason: { type: string }
+      responses:
+        "200": { description: Decision recorded, content: { application/json: { schema: { $ref: "#/components/schemas/ActionResponse" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: sk_ledger }
+  schemas:
+    RiskLevel: { type: string, enum: [low, medium, high, critical] }
+    ActionStatus: { type: string, enum: [auto_approved, pending_approval, approved, rejected, executed, execution_failed] }
+    ActionProposal:
+      type: object
+      required: [agentId, description, riskLevel]
+      properties:
+        agentId: { type: string }
+        description: { type: string }
+        riskLevel: { $ref: "#/components/schemas/RiskLevel" }
+        approvalThreshold: { $ref: "#/components/schemas/RiskLevel" }
+        actionType: { type: string }
+        metadata: { type: object, additionalProperties: true }
+    Action:
+      type: object
+      additionalProperties: true
+      properties:
+        id: { type: string, format: uuid }
+        agentId: { type: string }
+        description: { type: string }
+        riskLevel: { $ref: "#/components/schemas/RiskLevel" }
+        status: { $ref: "#/components/schemas/ActionStatus" }
+    ActionResponse:
+      type: object
+      properties:
+        ok: { type: boolean, const: true }
+        action: { $ref: "#/components/schemas/Action" }
+        usage: { type: object, additionalProperties: true }
+    Error:
+      type: object
+      required: [error]
+      properties: { error: { type: string } }
+  responses:
+    BadRequest: { description: Invalid request, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    Unauthorized: { description: Missing or invalid API key, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    NotFound: { description: Action not found or not owned by this key, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
