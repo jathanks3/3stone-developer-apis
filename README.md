@@ -53,6 +53,8 @@ Sentinel and Shield contain read-only scan quickstarts. Ledger contains the prop
 
 Both examples read credentials from environment variables. They do not contain keys.
 
+See [TUTORIALS.md](./TUTORIALS.md) for a Next.js server route, durable artifact jobs, source-backed research, and safe backend patterns for mobile and no-code products.
+
 ## Marketplace positioning
 
 ### Sentinel API
