@@ -1,16 +1,29 @@
 # 3Stone Developer APIs
 
-Production APIs for narrow infrastructure problems: accessibility verification, deployed-app exposure checks, and approval gates for AI agents.
+Official examples and machine-readable contracts for the production 3Stone APIs.
 
 | API | Use it when | Start |
 | --- | --- | --- |
+| [3Stone API](https://www.3stoneai.com/api) | You need chat, research, file understanding, images, editable Office files, documents, music, video, or interactive tools behind one key and prepaid balance. | [Open Developer Mode](https://one.3stoneai.com/developer) |
 | [Shield](https://www.3stoneai.com/shield/api) | You need machine-readable accessibility findings in CI or a delivery workflow. | [Get a key](https://shield-api.3stoneai.com/signup?edition=shield_api_starter) |
 | [Sentinel](https://www.3stoneai.com/sentinel) | You need to check an AI-built app for exposed Supabase paths or browser-bundled secrets. | [Get a key](https://shield-api.3stoneai.com/signup?edition=sentinel) |
 | [Ledger](https://www.3stoneai.com/ledger) | You need an agent to propose a risky action and wait for an explicit decision. | [Get a key](https://shield-api.3stoneai.com/signup?edition=ledger) |
 
-Base URL: `https://shield-api.3stoneai.com`
+3Stone API base URL: `https://one.3stoneai.com`
 
-All paid endpoints use a product-specific bearer key. Keep keys in a secrets manager and never ship them to browser code.
+Shield, Sentinel, and Ledger base URL: `https://shield-api.3stoneai.com`
+
+All paid endpoints use a bearer key. Keep keys in a secrets manager and never ship them to browser or mobile client code.
+
+```bash
+curl https://one.3stoneai.com/v1/chat \
+  -H "Authorization: Bearer $THREESTONE_API_KEY" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"3stone-auto","input":"Explain exactly-once billing simply.","max_output_tokens":256}'
+```
+
+See the [production documentation](https://www.3stoneai.com/developers/docs) for authentication, billing, errors, limits, jobs, and every currently available capability.
 
 ```bash
 curl -X POST https://shield-api.3stoneai.com/api/v1/sentinel/scan \
@@ -21,7 +34,7 @@ curl -X POST https://shield-api.3stoneai.com/api/v1/sentinel/scan \
 
 ## OpenAPI
 
-The `openapi/` directory contains one OpenAPI 3.1 contract per product. These files are suitable for documentation tools, SDK generation, contract testing, and API directories.
+The `openapi/` directory contains OpenAPI 3.1 contracts for 3Stone API and the focused infrastructure APIs. These files are suitable for documentation tools, SDK generation, contract testing, and API directories.
 
 ## Postman
 
@@ -35,8 +48,8 @@ Sentinel and Shield contain read-only scan quickstarts. Ledger contains the prop
 
 ## Working examples
 
-- `examples/node.mjs` uses the native Node.js `fetch` API.
-- `examples/python.py` uses Python's standard library and needs no third-party package.
+- `examples/3stone-api-node.mjs` and `examples/3stone-api-python.py` call the main 3Stone API and poll durable creation jobs.
+- `examples/node.mjs` and `examples/python.py` cover the focused infrastructure APIs.
 
 Both examples read credentials from environment variables. They do not contain keys.
 

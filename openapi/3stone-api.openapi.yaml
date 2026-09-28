@@ -1,0 +1,202 @@
+openapi: 3.1.0
+info:
+  title: 3Stone API
+  version: 1.0.0
+  description: Production contract for 3Stone intelligence, research, files, and creation capabilities.
+servers:
+  - url: https://one.3stoneai.com
+security:
+  - bearerAuth: []
+paths:
+  /v1/chat:
+    post:
+      operationId: createChatResponse
+      summary: Generate a 3Stone chat response
+      parameters: [$ref: '#/components/parameters/IdempotencyKey']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ChatRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/SyncResult'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '402': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+  /v1/research:
+    post:
+      operationId: createResearchResponse
+      summary: Research a current topic with sources
+      parameters: [$ref: '#/components/parameters/IdempotencyKey']
+      requestBody: {$ref: '#/components/requestBodies/Prompt'}
+      responses:
+        '200': {$ref: '#/components/responses/SyncResult'}
+        default: {$ref: '#/components/responses/Error'}
+  /v1/files/analyze:
+    post:
+      operationId: analyzeFiles
+      summary: Analyze one to four supported images
+      parameters: [$ref: '#/components/parameters/IdempotencyKey']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [input, files]
+              properties:
+                input: {type: string, minLength: 1}
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 4
+                  items:
+                    type: object
+                    required: [media_type, data]
+                    properties:
+                      media_type: {type: string, enum: [image/jpeg, image/png, image/webp, image/gif]}
+                      data: {type: string, description: Base64-encoded bytes}
+      responses:
+        '200': {$ref: '#/components/responses/SyncResult'}
+        default: {$ref: '#/components/responses/Error'}
+  /v1/images:
+    post: {$ref: '#/components/pathItems/CreateJob'}
+  /v1/presentations:
+    post: {$ref: '#/components/pathItems/CreateJob'}
+  /v1/spreadsheets:
+    post: {$ref: '#/components/pathItems/CreateJob'}
+  /v1/documents:
+    post: {$ref: '#/components/pathItems/CreateJob'}
+  /v1/music:
+    post: {$ref: '#/components/pathItems/CreateJob'}
+  /v1/video:
+    post: {$ref: '#/components/pathItems/CreateJob'}
+  /v1/tools:
+    post: {$ref: '#/components/pathItems/CreateJob'}
+  /v1/jobs/{job_id}:
+    get:
+      operationId: getJob
+      summary: Read durable job status
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Job'}
+        default: {$ref: '#/components/responses/Error'}
+  /v1/jobs/{job_id}/artifact:
+    get:
+      operationId: downloadJobArtifact
+      summary: Download the completed, key-protected artifact
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200': {description: Generated artifact bytes}
+        default: {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: 3stone_sk
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: {type: string, minLength: 8, maxLength: 255}
+    JobId:
+      name: job_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  requestBodies:
+    Prompt:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [input]
+            properties:
+              input: {type: string, minLength: 1}
+              max_output_tokens: {type: integer, minimum: 64, maximum: 4000}
+  pathItems:
+    CreateJob:
+      operationId: createCapabilityJob
+      summary: Start a durable 3Stone creation job
+      parameters: [$ref: '#/components/parameters/IdempotencyKey']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              additionalProperties: true
+              properties:
+                prompt: {type: string, minLength: 1}
+      responses:
+        '202':
+          description: Job accepted
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Job'}
+        default: {$ref: '#/components/responses/Error'}
+  schemas:
+    ChatRequest:
+      type: object
+      properties:
+        model: {type: string, enum: [3stone-auto, 3stone-fast, 3stone-balanced, 3stone-max]}
+        input: {type: string}
+        messages: {type: array, maxItems: 20, items: {type: object}}
+        max_output_tokens: {type: integer, minimum: 64, maximum: 4000}
+      oneOf:
+        - required: [input]
+        - required: [messages]
+    Usage:
+      type: object
+      properties:
+        charge_cents: {type: integer}
+        charge_microusd: {type: integer}
+        provider_cost_microusd: {type: integer}
+    Job:
+      type: object
+      required: [job_id, status]
+      properties:
+        job_id: {type: string, format: uuid}
+        status: {type: string, enum: [queued, running, completed, failed, requires_reconciliation]}
+        artifact_url: {type: string}
+        usage: {$ref: '#/components/schemas/Usage'}
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code: {type: string}
+            message: {type: string}
+            request_id: {type: string}
+  responses:
+    SyncResult:
+      description: Successful synchronous result
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id: {type: string}
+              output_text: {type: string}
+              sources: {type: array, items: {type: object}}
+              usage: {$ref: '#/components/schemas/Usage'}
+    Error:
+      description: Structured API error
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
